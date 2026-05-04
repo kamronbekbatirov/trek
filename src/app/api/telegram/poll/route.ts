@@ -6,11 +6,16 @@ import { prisma } from "@/lib/db";
 // Call it via cron: GET /api/telegram/poll?secret=$CRON_SECRET
 // It uses Telegram's getUpdates API with offset tracking.
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
-const CRON_SECRET = process.env.CRON_SECRET;
-if (!CRON_SECRET) {
-  throw new Error("CRON_SECRET environment variable is required (see .env.example)");
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required (see .env.example)`);
+  }
+  return value;
 }
+
+const BOT_TOKEN: string = requireEnv("TELEGRAM_BOT_TOKEN");
+const CRON_SECRET: string = requireEnv("CRON_SECRET");
 
 async function sendMessage(chatId: number | string, text: string) {
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
