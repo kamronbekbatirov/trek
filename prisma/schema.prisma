@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  password          String?
+  name              String?
+  role              Role           @default(USER)
+  orgType           OrgType?
+  taxRegime         TaxRegime?
+  language          String         @default("ru")
+  telegramId        String?
+  telegramUsername  String?
+  phone             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  telegramChatId    String?
+  hasEmployees      Boolean?
+  assets            String[]       @default([])
+  specialActivities String[]       @default([])
+  pensionFund       String[]       @default([])
+  reminderDays      Int[]          @default([7, 3, 1])
+  onboardingDone    Boolean        @default(false)
+  eventStatuses     EventStatus[]
+  notifications     Notification[]
+  subscription      Subscription?
+  aiChatUsages      AiChatUsage[]
+  accountantOrgs    AccountantOrg[]
+}
+
+model AccountantOrg {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  orgType           OrgType
+  taxRegime         TaxRegime?
+  hasEmployees      Boolean?
+  assets            String[]  @default([])
+  specialActivities String[]  @default([])
+  pensionFund       String[]  @default([])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model TaxEvent {
+  id                String         @id @default(cuid())
+  year              Int
+  month             Int
+  date              DateTime
+  originalDate      DateTime?
+  taxType           TaxType
+  eventType         EventType      @default(BOTH)
+  titleRu           String
+  titleEn           String
+  titleUz           String
+  titleUzc          String
+  descRu            String
+  descEn            String
+  descUz            String
+  descUzc           String
+  orgTypes          OrgType[]
+  taxRegimes        TaxRegime[]
+  requiresEmployees Boolean?
+  requiresAssets    String[]       @default([])
+  requiresSpecial   String[]       @default([])
+  requiresPension   String[]       @default([])
+  forPeriod         String?
+  baseDateNK        DateTime?
+  articleRef        String?
+  articleUrl        String?
+  isPostponed       Boolean        @default(false)
+  postponeReasonRu  String?
+  postponeReasonEn  String?
+  postponeReasonUz  String?
+  postponeReasonUzc String?
+  isRecurring       Boolean        @default(false)
+  recurrence        String?
+  baseDay           Int?
+  isPublished       Boolean        @default(false)
+  isDraft           Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  statuses          EventStatus[]
+  notifications     Notification[]
+}
+
+model EventStatus {
+  id           String   @id @default(cuid())
+  userId       String
+  eventId      String
+  isDone       Boolean  @default(false)
+  notes        String?
+  reminderDays Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  event        TaxEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
+model Subscription {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  plan            Plan      @default(FREE)
+  status          SubStatus @default(ACTIVE)
+  paymeCardToken  String?
+  paymeCardMask   String?
+  nextBillingDate DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  payments        Payment[]
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                String       @id @default(cuid())
+  subscriptionId    String
+  amount            Int
+  status            PayStatus    @default(PENDING)
+  paymeTransId      String?      @unique
+  createdAt         DateTime     @default(now())
+  description       String?
+  paymeCancelReason Int?
+  paymeCancelTime   BigInt?
+  paymeCreateTime   BigInt?
+  paymePerformTime  BigInt?
+  paymeState        Int?
+  subscription      Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  eventId    String?
+  type       NotifType
+  messageRu  String
+  messageEn  String
+  messageUz  String
+  messageUzc String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  event      TaxEvent? @relation(fields: [eventId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrgType {
+  LLC
+  JSC
+  IE
+  SELF_EMPLOYED
+  FARM
+  ACCOUNTANT
+}
+
+enum TaxRegime {
+  VAT
+  TURNOVER
+  BOTH
+}
+
+enum TaxType {
+  VAT
+  PERSONAL_IT
+  PROFIT
+  PROPERTY
+  LAND
+  WATER
+  EXCISE
+  SOCIAL
+  INPS
+  TURNOVER
+  RENT
+  FEES
+  OTHER
+}
+
+enum EventType {
+  REPORT
+  PAYMENT
+  BOTH
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum PayStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum NotifType {
+  DEADLINE
+  PAYMENT
+  SYSTEM
+}
+
+model AiChatUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  year      Int
+  month     Int
+  count     Int      @default(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month])
+}
+
+model TelegramAuthToken {
+  id               String   @id @default(cuid())
+  token            String   @unique
+  userId           String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  pendingChatId    String?
+  pendingTelegramId String?
+  pendingUsername  String?
+  pendingName      String?
+}
