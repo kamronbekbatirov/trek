@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
@@ -49,6 +50,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>{children}</ThemeProvider>
+        <Script src="https://stats.kama.uz/script.js" data-website-id="bc6b21bf-21b1-4fbb-9087-b01cce69f339" data-domains="trek.uz" strategy="afterInteractive" />
       </body>
     </html>
   );
